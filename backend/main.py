@@ -26,7 +26,7 @@ app.add_middleware(
         "http://localhost:3000",
         "https://youtube-rag-nu.vercel.app",  # deploy sonrası güncellenecek
         os.getenv("FRONTEND_URL", ""),
-    ],https://www.youtube.com/watch?v=XeWvsfnrfRc
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -24,9 +24,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "https://youtube-rag-k2em.onrender.com",  # deploy sonrası güncellenecek
+        "https://youtube-rag-nu.vercel.app",  # deploy sonrası güncellenecek
         os.getenv("FRONTEND_URL", ""),
-    ],
+    ],https://www.youtube.com/watch?v=XeWvsfnrfRc
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

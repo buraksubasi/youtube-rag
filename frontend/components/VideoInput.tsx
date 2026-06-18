@@ -4,11 +4,19 @@ import { useState } from "react";
 import { PlayCircle, Loader2 } from "lucide-react";
 import { ingestVideo } from "@/lib/api";
 
+const QUICK_QUESTIONS = [
+  "Bu videonun konusu nedir?",
+  "Videoda öne çıkan ana noktalar neler?",
+  "Videoda bahsedilen önemli kavramları açıkla.",
+  "Bu videodan ne öğrenebilirim?",
+];
+
 interface Props {
   onVideoReady: (videoId: string, videoUrl: string) => void;
+  onQuickQuestion?: (question: string) => void;
 }
 
-export default function VideoInput({ onVideoReady }: Props) {
+export default function VideoInput({ onVideoReady, onQuickQuestion }: Props) {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -70,6 +78,20 @@ export default function VideoInput({ onVideoReady }: Props) {
       )}
       {status && (
         <p className="mt-2 text-sm text-green-600">{status}</p>
+      )}
+      {status && onQuickQuestion && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {QUICK_QUESTIONS.map((q) => (
+            <button
+              key={q}
+              type="button"
+              onClick={() => onQuickQuestion(q)}
+              className="px-3 py-1.5 text-xs rounded-full border border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 hover:border-gray-300 transition-colors"
+            >
+              {q}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

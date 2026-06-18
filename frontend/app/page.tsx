@@ -8,6 +8,7 @@ import { PlayCircle } from "lucide-react";
 export default function Home() {
   const [videoId, setVideoId] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string>("");
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
 
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col">
@@ -30,6 +31,9 @@ export default function Home() {
               setVideoId(id);
               setVideoUrl(url);
             }}
+            onQuickQuestion={(q) => {
+              setPendingQuestion(q);
+            }}
           />
           {videoUrl && (
             <div className="mt-3 pt-3 border-t border-gray-100">
@@ -45,7 +49,11 @@ export default function Home() {
         {/* Chat */}
         {videoId && (
           <div className="bg-white rounded-xl border border-gray-200 flex-1 flex flex-col min-h-[500px]">
-            <ChatBox videoId={videoId} />
+            <ChatBox
+              videoId={videoId}
+              pendingQuestion={pendingQuestion}
+              onPendingQuestionConsumed={() => setPendingQuestion(null)}
+            />
           </div>
         )}
 

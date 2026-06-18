@@ -13,9 +13,11 @@ interface Message {
 
 interface Props {
   videoId: string;
+  pendingQuestion?: string | null;
+  onPendingQuestionConsumed?: () => void;
 }
 
-export default function ChatBox({ videoId }: Props) {
+export default function ChatBox({ videoId, pendingQuestion, onPendingQuestionConsumed }: Props) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -29,6 +31,28 @@ export default function ChatBox({ videoId }: Props) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (!pendingQuestion || loading) return;
+    const question = pendingQuestion;
+    onPendingQuestionConsumed?.();
+    setMessages((prev) => [...prev, { role: "user", content: question }]);
+    setLoading(true);
+    queryVideo(question, videoId)
+      .then((result) => {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: result.answer, sources: result.sources },
+        ]);
+      })
+      .catch((err: any) => {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: `Hata: ${err.message}` },
+        ]);
+      })
+      .finally(() => setLoading(false));
+  }, [pendingQuestion]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

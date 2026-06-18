@@ -17,9 +17,12 @@ def get_transcript(url: str) -> list[dict]:
     video_id = extract_video_id(url)
     
     try:
-        ytt_api = YouTubeTranscriptApi()
-        transcript_list = ytt_api.list(video_id)
-        
+        # v0.6.x+ instance API; older versions use the class method
+        try:
+            transcript_list = YouTubeTranscriptApi().list(video_id)
+        except AttributeError:
+            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+
         # Önce manuel, sonra otomatik transcript dene
         try:
             transcript = transcript_list.find_transcript(["tr", "en"])
@@ -28,14 +31,18 @@ def get_transcript(url: str) -> list[dict]:
         
         raw = transcript.fetch()
         
-        return [
-            {
-                "text": segment.text.strip(),
-                "start": round(segment.start),
-            }
-            for segment in raw
-            if segment.text.strip()
-        ]
+        result = []
+        for segment in raw:
+            # v0.6.x returns objects with attributes; older versions return dicts
+            if hasattr(segment, "text"):
+                text = segment.text.strip()
+                start = round(segment.start)
+            else:
+                text = segment.get("text", "").strip()
+                start = round(segment.get("start", 0))
+            if text:
+                result.append({"text": text, "start": start})
+        return result
         
     except TranscriptsDisabled:
         raise ValueError("Bu videoda transcript kapalı.")

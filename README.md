@@ -105,6 +105,80 @@ Videoda React performansı hakkında ne anlatılıyor?
 
 ---
 
+## Kurulum ve Çalıştırma
+
+### Gereksinimler
+
+| Servis | Açıklama | Link |
+|---|---|---|
+| Gemini API Key | Embedding + LLM için | [aistudio.google.com](https://aistudio.google.com/) |
+| Qdrant Cloud | Vektör veritabanı | [cloud.qdrant.io](https://cloud.qdrant.io/) |
+| Webshare (opsiyonel) | Cloud deploy'da YouTube IP bloğunu aşmak için | [webshare.io](https://www.webshare.io/) |
+
+### Ortam Değişkenleri
+
+`backend/.env` dosyası oluşturun:
+
+```env
+GEMINI_API_KEY=...
+QDRANT_URL=https://<cluster>.cloud.qdrant.io
+QDRANT_API_KEY=...
+COLLECTION_NAME=youtube_rag
+WEBSHARE_PROXY_USERNAME=     # opsiyonel — Render/cloud deploy için
+WEBSHARE_PROXY_PASSWORD=     # opsiyonel — Render/cloud deploy için
+```
+
+`frontend/.env.local` dosyası oluşturun:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+### Local Geliştirme
+
+```bash
+# Backend
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+
+# Frontend (ayrı terminal)
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## Cloud Deploy (Render)
+
+### Neden Webshare Gerekli?
+
+YouTube, AWS/GCP/Render gibi cloud provider IP'lerinden gelen transcript isteklerini engeller. Bu nedenle Render'a deploy edilmiş backend, proxy olmadan transcript çekemez.
+
+### Webshare Kurulumu
+
+1. [webshare.io](https://www.webshare.io/) adresine gidin ve ücretsiz hesap açın (Free plan: 10 proxy, 1 GB/ay)
+2. Dashboard → **Proxy** → **Proxy Settings** bölümüne gidin
+3. `Proxy Username` ve `Proxy Password` değerlerini kopyalayın
+
+### Render'a Environment Variable Ekleme
+
+Render Dashboard → Servisiniz → **Environment** sekmesine şu değişkenleri ekleyin:
+
+```
+GEMINI_API_KEY         = <değer>
+QDRANT_URL             = <değer>
+QDRANT_API_KEY         = <değer>
+COLLECTION_NAME        = youtube_rag
+WEBSHARE_PROXY_USERNAME = <webshare kullanıcı adı>
+WEBSHARE_PROXY_PASSWORD = <webshare şifre>
+```
+
+Proxy credentials ayarlandığında kod otomatik olarak Webshare üzerinden istek atar. Credentials eksikse (local ortam) direkt bağlantı kullanılır — local geliştirmede ek bir ayar gerekmez.
+
+---
+
 ## Kullanılan Teknolojiler
 
 * YouTube Transcript API

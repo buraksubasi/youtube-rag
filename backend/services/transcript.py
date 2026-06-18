@@ -1,5 +1,6 @@
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
+import os
 import re
 
 def extract_video_id(url: str) -> str:
@@ -13,13 +14,32 @@ def extract_video_id(url: str) -> str:
             return match.group(1)
     raise ValueError(f"Geçerli bir YouTube URL'si değil: {url}")
 
+def _build_api() -> YouTubeTranscriptApi:
+    proxy_username = os.getenv("WEBSHARE_PROXY_USERNAME")
+    proxy_password = os.getenv("WEBSHARE_PROXY_PASSWORD")
+
+    if proxy_username and proxy_password:
+        try:
+            from youtube_transcript_api.proxies import WebshareProxyConfig
+            return YouTubeTranscriptApi(
+                proxy_config=WebshareProxyConfig(
+                    proxy_username=proxy_username,
+                    proxy_password=proxy_password,
+                )
+            )
+        except ImportError:
+            pass
+
+    return YouTubeTranscriptApi()
+
 def get_transcript(url: str) -> list[dict]:
     video_id = extract_video_id(url)
     
     try:
-        # v0.6.x+ instance API; older versions use the class method
+        api = _build_api()
+
         try:
-            transcript_list = YouTubeTranscriptApi().list(video_id)
+            transcript_list = api.list(video_id)
         except AttributeError:
             transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
 
@@ -33,7 +53,6 @@ def get_transcript(url: str) -> list[dict]:
         
         result = []
         for segment in raw:
-            # v0.6.x returns objects with attributes; older versions return dicts
             if hasattr(segment, "text"):
                 text = segment.text.strip()
                 start = round(segment.start)

@@ -2,6 +2,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from services.transcript import get_transcript, extract_video_id
 from services.embedder import embed_text, embed_batch
 from services.vector_store import save_chunks, search, video_exists
+from services.reranker import rerank
 
 def chunk_transcript(segments: list[dict]) -> list[dict]:
     # Önce tüm segmentleri birleştir, timestamp'i koru
@@ -66,19 +67,19 @@ def ingest_video(url: str) -> dict:
     }
 
 def query_video(question: str, video_id: str) -> dict:
-    # 1. Soruyu embed et
     query_embedding = embed_text(question)
     
-    # 2. Qdrant'tan ilgili chunk'ları getir
-    results = search(query_embedding, video_id, top_k=5)
+    # Geniş net: top_k=10 aday getir
+    candidates = search(query_embedding, video_id, top_k=10)
     
-    # 3. Context oluştur
+    # Re-rank: en alakalı 3'ü seç
+    results = rerank(question, candidates, top_k=3)
+    
     context = "\n\n".join([
         f"[{r['start']}. saniye]: {r['text']}"
         for r in results
     ])
     
-    # 4. Gemini ile cevap üret
     import google.generativeai as genai
     model = genai.GenerativeModel("gemini-2.5-flash")
     

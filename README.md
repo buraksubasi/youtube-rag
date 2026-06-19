@@ -40,15 +40,76 @@ Kullanıcı soru sorar
     ↓
 Soru Gemini Embedding API ile embed edilir
     ↓
-Qdrant'ta similarity search yapılır
+Qdrant'ta similarity search yapılır (top 10 aday)
     ↓
-En alakalı chunk'lar bulunur
+FlashRank Re-ranker adayları sıralar (top 3 seçilir)
     ↓
-Chunk'lar + Kullanıcı Sorusu Gemini'ye gönderilir
+Seçilen chunk'lar + Kullanıcı Sorusu Gemini'ye gönderilir
     ↓
 Gemini cevap üretir
     ↓
 Timestamp referansları ile birlikte sonuç döner
+```
+
+---
+
+## Re-Ranking Katmanı
+
+### Neden Re-Rank?
+
+Vektör benzerliği (cosine similarity) semantik yakınlığı ölçer; ancak bir soruya gerçekten cevap veren pasajı her zaman en üste taşıyamaz. Re-ranking, geniş bir aday havuzunu sorgu-pasaj çifti olarak yeniden puanlayan ikinci bir model geçişidir.
+
+```text
+Qdrant → top 10 aday (embedding benzerliği)
+            ↓
+        FlashRank Re-ranker
+            ↓
+        top 3 en alakalı chunk
+            ↓
+        Gemini prompt'una gönderilir
+```
+
+### Kullanılan Model
+
+| Özellik | Değer |
+|---|---|
+| Kütüphane | `flashrank` |
+| Model | `ms-marco-MultiBERT-L-12` |
+| Tip | Cross-encoder (sorgu + pasaj birlikte değerlendirilir) |
+| Boyut | ~90 MB, CPU'da çalışır |
+
+### Neden FlashRank?
+
+- GPU gerektirmez, CPU üzerinde hızlı çalışır
+- `sentence-transformers`'a göre çok daha küçük bağımlılık ağacı
+- Render gibi ortamlarda bellek dostu
+
+### Docker Build Cache
+
+Model her deploy'da yeniden indirilmemesi için `Dockerfile`'da build aşamasında cache'lenir:
+
+```dockerfile
+RUN python -c "from flashrank import Ranker; Ranker(model_name='ms-marco-MultiBERT-L-12')"
+```
+
+### Kod Yapısı
+
+`backend/services/reranker.py`:
+
+```python
+from flashrank import Ranker, RerankRequest
+
+_ranker = None  # singleton — ilk çağrıda yüklenir
+
+def get_reranker() -> Ranker: ...       # lazy loading
+def rerank(query, chunks, top_k=3) -> list[dict]: ...  # skorlu chunk listesi döner
+```
+
+`rag.py`'deki kullanım:
+
+```python
+candidates = search(query_embedding, video_id, top_k=10)  # Qdrant'tan 10 aday
+results    = rerank(question, candidates, top_k=3)         # en iyi 3'e indir
 ```
 
 ---
